@@ -1,0 +1,50 @@
+@import "./reset";
+@import "./animations";
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Golos Text";
+  color: #121f3e;
+}
+
+@media (pointer: none), (pointer: coarse) {
+  body.keyboard #root:has(form) {
+    height: 58vh;
+  }
+
+  body.focusedItems .appNavbar {
+    display: none;
+  }
+
+  body .appNavbar {
+    display: block;
+  }
+}
+
+#root {
+  height: 100%;
+}
+
+::-webkit-resizer {
+  display: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.swiper-wrapper {
+  display: flex;
+}
+
+.css-1sibkpi[data-checked] {
+  --switch-bg: #8358FD !important;
+}

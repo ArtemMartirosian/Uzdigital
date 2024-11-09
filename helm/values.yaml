@@ -1,0 +1,28 @@
+gp-deployment:
+
+  name: uzdigital-front
+
+  image:
+    repository: devgs/uzdigital-front
+    tag: "dev-${BITBUCKET_BUILD_NUMBER}"
+
+  service:
+    port: 80
+
+  ingress:
+    enabled: true
+    hostname:
+      - "uzdigital-frontend-dev.globaltrans.uz"
+
+  context: "" # set api context, e.g. "/merchant", default is ""
+  
+  whitelist:
+    enabled: false
+
+  externalSecrets:
+    enabled: false
+
+  actuator:
+    enabled: false
+
+  env: {}

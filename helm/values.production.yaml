@@ -1,0 +1,30 @@
+gp-deployment:
+
+  name: uzdigital
+  
+  image:
+    repository: devgs/uzdigital-front
+    tag: "prod-${BITBUCKET_BUILD_NUMBER}"
+    
+  service:
+    port: 80
+    
+  ingress:
+    enabled: true
+    hostname: 
+    - "uzdigital.globalpay.uz"
+
+  context: "" # set api context, e.g. "/merchant", default is ""
+  
+  whitelist:
+    enabled: false
+    
+  externalSecrets:
+    enabled: false
+    #name: secrets # must be set for the ExternalSecrets vars
+    #key: "secret///"
+
+  actuator:
+    enabled: false
+
+  env: {}

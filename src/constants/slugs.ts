@@ -1,0 +1,16 @@
+export const kindergartens = "kindergartens";
+export const payment = "payment";
+export const favorite = "favorite";
+export const by_accaunt = "by-account";
+export const feedback = "feedback";
+export const media = "media";
+export const users = "users";
+export const regions = "regions";
+export const banners = "banners";
+export const instructions = "instructions";
+export const faq = "faq";
+export const contacts = "contacts";
+export const connection_applications = "connection-applications";
+export const checkAccountIdByCDSN = "uzdigital/checkAccountIdByCDSN";
+export const otpSend = "/otp/send";
+export const login = "/auth/login";

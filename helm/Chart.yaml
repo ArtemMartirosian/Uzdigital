@@ -1,0 +1,9 @@
+apiVersion: v2
+name: uzdigital
+description: Global uzdigital API
+type: application
+version: 0.1.${BITBUCKET_BUILD_NUMBER}
+dependencies:
+  - name: gp-deployment
+    version: 0.2.0
+    repository: "@global"

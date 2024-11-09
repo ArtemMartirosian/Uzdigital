@@ -1,0 +1,133 @@
+image: node:18
+
+clone:
+  depth: full              # SonarCloud scanner needs the full history to assign issues properly
+
+definitions:
+  services:
+    docker:
+      memory: 2048
+  caches:
+    sonar: ~/.sonar/  # Caching SonarCloud artifacts will speed up your build
+  steps:
+    - step: &build-test-sonarcloud
+        name: Build, test and analyze on SonarCloud
+        caches:
+          - node
+          - sonar
+        script:
+          - npm install --quiet
+          - npm run scan
+        after-script:
+          - ./telegram_build.sh
+          
+  steps:
+    - step: &send-tg-start
+        name: Send to Telegram
+        script:
+          - curl -s -X POST https://api.telegram.org/bot1423950829:AAGMjz9k4HpLFCGUk6_o4IcKfz_98Z4d-4I/sendMessage -d chat_id=-1001441304307 -d text="[${BITBUCKET_BRANCH}] ${BITBUCKET_GIT_HTTP_ORIGIN}/pipelines/results/${BITBUCKET_BUILD_NUMBER} is STARTED"
+pipelines:
+  # pull-requests:
+    # '**':
+      # - step: *build-test-sonarcloud
+  branches:
+    main:
+      - step: *send-tg-start
+      # - step: *build-test-sonarcloud
+      - step:
+          name: Build uzdigital master Project
+          caches:
+            - node
+          script:
+            - npm ci
+            - npm install
+            - npm run-script build-prod
+          artifacts:
+            - dist/**
+          after-script:
+            - ./telegram_build.sh
+      - step:
+          name: Build docker and push docker image on DockerHub
+          caches:
+            - docker
+          services:
+            - docker
+          size: 2x
+          script:
+            - docker build -t devgs/uzdigital-front:prod-${BITBUCKET_BUILD_NUMBER} .
+            - docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_TOKEN
+            - docker push devgs/uzdigital-front:prod-${BITBUCKET_BUILD_NUMBER}
+          after-script:
+            - ./telegram_docker.sh
+      - step:
+          name: Deploy to K8s Air-uzdigital-Prod
+          deployment: production
+          image: alpine/helm:3.10.1
+          script:
+            - mkdir ~/.kube
+            - echo $AIR_KUBE_CONFIG_DATA | base64 -d > ~/.kube/config
+            - export KUBECONFIG=~/.kube/config
+            - apk add gettext curl bash
+            - cd helm
+            - envsubst '$BITBUCKET_BUILD_NUMBER' < Chart.yaml > tmpfile && mv tmpfile Chart.yaml
+            - envsubst '$BITBUCKET_BUILD_NUMBER' < values.production.yaml > tmpfile && mv tmpfile values.production.yaml
+            - helm repo add global https://helm.globalpay.uz --username global --password $HELM_PASSWORD
+            - helm repo update
+            - helm dependency build
+            - helm plugin install https://github.com/chartmuseum/helm-push
+            - helm cm-push -f . global
+            - helm repo update
+            - helm upgrade --wait --timeout 300s --atomic --install uzdigital-front global/uzdigital --version 0.1.$BITBUCKET_BUILD_NUMBER -n uzd-production -f values.production.yaml
+          after-script:
+            - ./telegram_deploy.sh Air-uzdigital-Prod
+    dev:
+      - step: *send-tg-start
+      # - step: *build-test-sonarcloud
+      - step:
+          name: Build uzdigital dev Project
+          caches:
+            - node
+          script:
+            - npm ci
+            - npm install
+            - npm run-script build-dev
+          artifacts:
+            - dist/**
+          after-script:
+            - ./telegram_build.sh
+      - step:
+          name: Build docker and push docker image on DockerHub
+          caches:
+            - docker
+
+          services:
+            - docker
+          size: 2x
+          script:
+           # - cp .env.development
+            - docker build -t devgs/uzdigital-front:dev-${BITBUCKET_BUILD_NUMBER} .
+            - docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_TOKEN
+            - docker push devgs/uzdigital-front:dev-${BITBUCKET_BUILD_NUMBER}
+          after-script:
+            - ./telegram_docker.sh
+      - step:
+          name: Deploy to K8s Air-uzdigital-Dev
+          deployment: staging
+          image: alpine/helm:3.10.1
+          script:
+            - mkdir ~/.kube
+            - echo $AIR_KUBE_CONFIG_DATA | base64 -d > ~/.kube/config
+            - export KUBECONFIG=~/.kube/config
+            - apk add gettext curl bash
+            - cd helm
+            - envsubst '$BITBUCKET_BUILD_NUMBER' < Chart.yaml > tmpfile && mv tmpfile Chart.yaml
+            - envsubst '$BITBUCKET_BUILD_NUMBER' < values.yaml > tmpfile && mv tmpfile values.yaml
+            - helm repo add global https://helm.globalpay.uz --username global --password $HELM_PASSWORD
+            - helm repo update
+            - helm dependency build
+            - helm plugin install https://github.com/chartmuseum/helm-push
+            - helm cm-push -f . global
+            - helm repo update
+            - helm upgrade --wait --timeout 300s --atomic --install uzdigital-front global/uzdigital --version 0.1.$BITBUCKET_BUILD_NUMBER -n uzd-development -f values.yaml
+          after-script:
+            - ./telegram_deploy.sh Air-uzdigital-Dev
